@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-MZ">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Localize · Achados e Perdidos</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body>
+  <header class="topo">
+    <div class="container topo__barra">
+      <a class="marca" href="/<%= token ? '?token=' + token : '' %>">Localize</a>
+      <button class="menu-btn" aria-expanded="false" aria-controls="menu">Menu</button>
+      <nav id="menu" class="menu" aria-label="Principal">
+        <% if (session && session.perfil) { %>
+          <% if (session.perfil === 'secretaria') { %>
+            <a href="/secretaria<%= token ? '?token=' + token : '' %>">Painel da Secretaria</a>
+          <% } else { %>
+            <a href="/painel<%= token ? '?token=' + token : '' %>">O Meu Painel</a>
+          <% } %>
+          <span class="quem"><%= session.nome %> · <%= session.perfil %></span>
+          <a href="/sair">Sair</a>
+        <% } else { %>
+          <a href="/login">Entrar</a>
+          <a href="/registo">Criar conta</a>
+        <% } %>
+      </nav>
+    </div>
+  </header>
+  <main class="container pagina">
+    <% if (flashes && flashes.length > 0) { %>
+      <% flashes.forEach(function(f) { %>
+        <p class="aviso aviso--<%= f.category %>" role="status"><%= f.message %></p>
+      <% }); %>
+    <% } %>

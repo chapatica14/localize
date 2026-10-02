@@ -1,0 +1,6 @@
+{
+  "summary":  "Plano detalhado para implementação dos 3 fluxos obrigatórios do Localize: registo de item encontrado com status 'Pendente de Entrega na Secretaria', notificação de perda com status 'Aguardando Localização / Em Espera', e cruzamento (Match) com notificação direta e status 'Disponível para Levantamento' e 'Devolvido'.",
+  "updatedAt":  "2026-10-02T10:21:14.111879959Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

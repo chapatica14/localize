@@ -1,8 +1,7 @@
-{% extends "base.html" %}
-{% block conteudo %}
+<%- include('partials/header') %>
 <section class="cartao cartao--etiqueta">
   <h1>Criar conta</h1>
-  <form method="post" class="form">
+  <form method="post" action="/registo" class="form">
     <label>Nome completo <input name="nome" required></label>
     <label>Email <input type="email" name="email" required></label>
     <label>Senha (mínimo 6 caracteres) <input type="password" name="senha" minlength="6" required></label>
@@ -14,6 +13,6 @@
     <p class="nota">As contas da Secretaria são criadas pelo administrador.</p>
     <button class="btn btn--primario">Criar conta</button>
   </form>
-  <p>Já tem conta? <a href="{{ url_for('login') }}">Entrar</a></p>
+  <p>Já tem conta? <a href="/login">Entrar</a></p>
 </section>
-{% endblock %}
+<%- include('partials/footer') %>

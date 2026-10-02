@@ -1,0 +1,95 @@
+<%- include('partials/header') %>
+<h1>Olá, <%= session.nome %></h1>
+
+<% if (typeof notificacoes !== 'undefined' && notificacoes && notificacoes.length > 0) { %>
+  <section class="cartao cartao--notificacao">
+    <h3>📢 Notificação da Secretaria da Universidade Técnica</h3>
+    <% notificacoes.forEach(function(n) { %>
+      <div style="padding: 0.5rem 0; border-bottom: 1px solid rgba(15,81,50,0.15);">
+        <p style="font-weight: 600; color: #0f5132; margin-bottom: 0.25rem;">
+          Item: <%= n.item_codigo %>
+        </p>
+        <p style="font-size: 1rem; line-height: 1.5;">
+          "<%= n.mensagem %>"
+        </p>
+      </div>
+    <% }); %>
+  </section>
+<% } %>
+
+<section class="cartao">
+  <h2><%= session.perfil === 'estudante' ? 'Novo registo' : 'Registar item encontrado' %></h2>
+  <form method="post" action="/item<%= token ? '?token=' + token : '' %>" class="form form--grade">
+    <% if (session.perfil === 'estudante') { %>
+      <label>O que quer registar?
+        <select name="tipo" required>
+          <option value="perdido">Perdi um objeto/documento (Notificação de Perda)</option>
+          <option value="achado">Encontrei um objeto/documento</option>
+        </select>
+      </label>
+    <% } else { %>
+      <input type="hidden" name="tipo" value="achado">
+    <% } %>
+    <label>Categoria
+      <select name="categoria" required>
+        <% CATEGORIAS.forEach(function(c) { %>
+          <option value="<%= c %>"><%= c %></option>
+        <% }); %>
+      </select>
+    </label>
+    <label>Marca ou modelo <input name="marca" placeholder="Ex.: HP, Dell, Jansport..."></label>
+    <label>Cor <input name="cor" placeholder="Ex.: Azul, Preto, Cinzento..."></label>
+    <label>Local aproximado
+      <select name="local" required>
+        <% LOCAIS.forEach(function(l) { %>
+          <option value="<%= l %>"><%= l %></option>
+        <% }); %>
+      </select>
+    </label>
+    <label>Data provável <input type="date" name="data" max="<%= hoje %>" value="<%= hoje %>" required></label>
+    <button class="btn btn--primario">Submeter Registo</button>
+  </form>
+</section>
+
+<section>
+  <h2>Os meus registos</h2>
+  <% if (itens && itens.length > 0) { %>
+  <div class="tabela"><table>
+    <thead><tr><th>Código</th><th>Tipo</th><th>Item</th><th>Local</th><th>Data</th><th>Estado do Pedido</th></tr></thead>
+    <tbody>
+    <% itens.forEach(function(i) { %>
+      <tr>
+        <td><strong><%= i.codigo %></strong></td>
+        <td><%= i.tipo === 'perdido' ? 'Perdido' : 'Achado' %></td>
+        <td><%= i.categoria %><%= i.marca ? ' · ' + i.marca : '' %><%= i.cor ? ' (' + i.cor + ')' : '' %></td>
+        <td><%= i.local_campus %></td>
+        <td><%= i.data_ocorrencia %></td>
+        <td>
+          <span class="badge badge--<%= i.estado %>"><%= ESTADOS[i.estado] || i.estado %></span>
+          <% if (i.estado === 'disponivel_levantamento') { %>
+            <br><small style="color: #0f5132; font-weight: 600; display: inline-block; margin-top: 0.25rem;">
+              ✓ Dirija-se à Secretaria da Universidade Técnica para proceder ao levantamento com o seu documento (BI/Matrícula).
+            </small>
+          <% } else if (i.estado === 'pendente_entrega') { %>
+            <br><small style="color: #7a5600; display: inline-block; margin-top: 0.25rem;">
+              Por favor, entregue o pertence na Secretaria para concluir o processo.
+            </small>
+          <% } else if (i.estado === 'aguardando_localizacao') { %>
+            <br><small style="color: var(--suave); display: inline-block; margin-top: 0.25rem;">
+              Ainda não deu entrada na Secretaria. Aguarde novas atualizações.
+            </small>
+          <% } else if (i.estado === 'devolvido') { %>
+            <br><small style="color: var(--suave); display: inline-block; margin-top: 0.25rem;">
+              Processo concluído e item devolvido ao proprietário.
+            </small>
+          <% } %>
+        </td>
+      </tr>
+    <% }); %>
+    </tbody>
+  </table></div>
+  <% } else { %>
+    <p class="nota">Ainda não tem registos. Use o formulário acima para criar o primeiro.</p>
+  <% } %>
+</section>
+<%- include('partials/footer') %>

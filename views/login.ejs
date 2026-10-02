@@ -1,0 +1,58 @@
+<%- include('partials/header') %>
+<section class="cartao cartao--etiqueta">
+  <h1>Entrar no Localize</h1>
+  <p>Perdeu ou encontrou algo no campus? Entre para acompanhar os seus registos.</p>
+  
+  <form method="post" action="/login" class="form">
+    <label>Email <input type="email" name="email" id="login-email" required autofocus></label>
+    <label>Senha <input type="password" name="senha" id="login-senha" required></label>
+    <button type="submit" class="btn btn--primario">Entrar</button>
+  </form>
+  
+  <p>Ainda não tem conta? <a href="/registo">Criar conta</a></p>
+
+  <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--linha);">
+    <p style="margin: 0 0 0.75rem; font-weight: 600; font-size: 0.95rem;">Acesso rápido para avaliação (1 clique):</p>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <form method="post" action="/login/demo" style="margin: 0;">
+        <input type="hidden" name="perfil" value="estudante">
+        <button type="submit" class="btn btn--sec" style="font-size: 0.85rem; padding: 0.5rem 0.85rem; background: var(--superficie);">
+          🎓 Entrar como Estudante
+        </button>
+      </form>
+      <form method="post" action="/login/demo" style="margin: 0;">
+        <input type="hidden" name="perfil" value="secretaria">
+        <button type="submit" class="btn btn--sec" style="font-size: 0.85rem; padding: 0.5rem 0.85rem; background: var(--superficie);">
+          🏢 Entrar como Secretaria
+        </button>
+      </form>
+    </div>
+
+    <div style="font-size: 0.85rem; color: var(--suave); line-height: 1.5;">
+      <p style="margin: 0.2rem 0;">
+        <strong>Credenciais de teste:</strong>
+      </p>
+      <p style="margin: 0.2rem 0;">
+        🎓 Estudante: <code>estudante@campus.local</code> / <code>estudante123</code>
+        <button type="button" onclick="preencher('estudante@campus.local','estudante123')" style="border:0; background:transparent; color:var(--verde); cursor:pointer; text-decoration:underline; font-size:0.8rem; margin-left:0.3rem;">Preencher</button>
+      </p>
+      <p style="margin: 0.2rem 0;">
+        🏢 Secretaria: <code>secretaria@campus.local</code> / <code>secretaria123</code>
+        <button type="button" onclick="preencher('secretaria@campus.local','secretaria123')" style="border:0; background:transparent; color:var(--verde); cursor:pointer; text-decoration:underline; font-size:0.8rem; margin-left:0.3rem;">Preencher</button>
+      </p>
+    </div>
+  </div>
+</section>
+
+<script>
+  function preencher(email, senha) {
+    const emailInput = document.getElementById('login-email');
+    const senhaInput = document.getElementById('login-senha');
+    if (emailInput && senhaInput) {
+      emailInput.value = email;
+      senhaInput.value = senha;
+      emailInput.focus();
+    }
+  }
+</script>
+<%- include('partials/footer') %>
