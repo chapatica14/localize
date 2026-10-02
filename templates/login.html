@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<section class="cartao cartao--etiqueta">
+  <h1>Entrar no Localize</h1>
+  <p>Perdeu ou encontrou algo no campus? Entre para acompanhar os seus registos.</p>
+  <form method="post" class="form">
+    <label>Email <input type="email" name="email" required autofocus></label>
+    <label>Senha <input type="password" name="senha" required></label>
+    <button class="btn btn--primario">Entrar</button>
+  </form>
+  <p>Ainda não tem conta? <a href="{{ url_for('registo') }}">Criar conta</a></p>
+</section>
+{% endblock %}
