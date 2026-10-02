@@ -1,132 +1,132 @@
-# Implementação dos 3 Fluxos Obrigatórios do Localize
+# Transformação do Localize para React e SQLite (Zero-Configuration)
 
-Alinha a aplicação às 3 regras de negócio essenciais: registo de itens encontrados, notificação de perdas e cruzamento (match) com avisos automáticos e atualização de status até a devolução final na Secretaria da Universidade Técnica.
-
-## Decisões Críticas e Requisitos Confirmados
-
-> [!IMPORTANT]
-> As mensagens de feedback do sistema e os rótulos de status seguem estritamente as especificações exigidas pelo utilizador.
-
-- **Fluxo 1 (Item Encontrado)**:
-  - Feedback imediato: *"Obrigado pelo registo! Por favor, dirija-se à Secretaria da Universidade Técnica para entregar o objeto/documento e concluir o processo."*
-  - Status inicial: **"Pendente de Entrega na Secretaria"**.
-- **Fluxo 2 (Item Perdido)**:
-  - Feedback imediato: *"Sua notificação foi registada com sucesso. O seu objeto/documento ainda não deu entrada na Secretaria. Por favor, aguarde novas atualizações."*
-  - Status inicial: **"Aguardando Localização / Em Espera"**.
-- **Fluxo 3 (Match & Levantamento)**:
-  - Notificação ao proprietário: *"O seu objeto/documento deu entrada na Secretaria da Universidade Técnica. Pode dirigir-se ao local para proceder ao levantamento e à verificação de identidade."*
-  - Status em caso de correspondência: **"Disponível para Levantamento"**.
-  - Status após devolução formal com documento: **"Devolvido"**.
+Este plano transforma o Localize numa aplicação com **Frontend moderno em React** e **Base de Dados SQLite persistente (`localize.db`)**, concebido para que você consiga abrir e rodar no seu Windows com apenas `npm.cmd install` e `npm.cmd run dev`, **sem precisar instalar C++, Python ou ferramentas adicionais no sistema**.
 
 ---
 
-## 1. Visão Geral e Conceito
+## 1. Princípio Fundamental: "Funcionar sem Instalar Mais Nada"
 
-O sistema estabelece uma ponte fluida e rastreável entre quem encontra algo no campus da Universidade Técnica, quem perdeu, e os funcionários da Secretaria responsáveis pela guarda física e devolução formal.
+No Windows, bibliotecas SQLite com código nativo C++ (como `better-sqlite3` ou `node-gyp`) costumam falhar se o utilizador não tiver o *Visual Studio C++ Build Tools* instalado.
+Para garantir que funcione perfeitamente no seu computador:
+1. **SQLite sem compilação nativa**:
+   - Utilizaremos `sql.js` (SQLite compilado em WebAssembly pelo projeto oficial SQLite) com persistência em ficheiro local `localize.db` ou fallback para o módulo embutido do Node.js.
+   - Isso garante 100% de compatibilidade em qualquer versão do Windows, sem necessidade de ferramentas de compilação.
+2. **React SPA com Servidor Integrado**:
+   - Um único comando (`npm.cmd run dev`) inicia o backend Express e serve o frontend React na porta `3000`.
+   - Você abre no navegador (`http://localhost:3000`) e tem a experiência de um aplicativo desktop fluido e reativo.
+
+---
+
+## 2. Nova Arquitetura do Sistema
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        CICLO DE VIDA DOS ITENS                         │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-    ┌───────────────────────────────┴───────────────────────────────┐
-    ▼                                                               ▼
-[Achado por alguém]                                            [Perdido por alguém]
-Status: "Pendente de Entrega na Secretaria"                    Status: "Aguardando Localização / Em Espera"
-Mensagem: Dirija-se à Secretaria para entregar                 Mensagem: Notificação registada, aguarde
-    │                                                               │
-    ▼                                                               │
-(Entrega física na Secretaria - Armário/Prateleira)                │
-    │                                                               │
-    └───────────────────────► [ MATCH ] ◄───────────────────────────┘
-                                    │
-                                    ▼
-                Status: "Disponível para Levantamento"
-                Notificação automática gerada para o proprietário
-                                    │
-                                    ▼
-            (Apresentação de BI/Matrícula na Secretaria)
-                                    │
-                                    ▼
-                        Status final: "Devolvido"
+┌─────────────────────────────────────────────────────────────┐
+│                    NAVEGADOR (React SPA)                    │
+│  - Painel do Estudante / Comunidade com abas e notificações  │
+│  - Painel da Secretaria (Fila de Entrada, Match e Devolução)│
+│  - Atualizações instantâneas de estado e toasts sem reload  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ JSON via REST API (/api/*)
+┌──────────────────────────────▼──────────────────────────────┐
+│                    BACKEND (Express.js)                     │
+│  - Rotas de Autenticação (/api/auth/login, /api/auth/demo)  │
+│  - Rotas de Itens (/api/itens - POST / GET)                 │
+│  - Rotas da Secretaria (/api/secretaria/receber, match...)  │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ Consultas SQL (SELECT/INSERT)
+┌──────────────────────────────▼──────────────────────────────┐
+│                  SQLITE (`localize.db`)                     │
+│  - Tabela `usuarios`                                        │
+│  - Tabela `itens` (status: pendente_entrega, etc.)          │
+│  - Tabela `notificacoes`                                    │
+│  - Tabela `devolucoes`                                      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Experiência do Utilizador e Interface
+## 3. Modelo da Base de Dados SQLite
 
-### 2.1 Visão do Estudante / Comunidade (`/painel`)
-1. **Registo de Item Encontrado (`tipo: achado`)**:
-   - O utilizador submete categoria, marca/modelo, cor, local aproximado e data.
-   - Mensagem em destaque no topo: *"Obrigado pelo registo! Por favor, dirija-se à Secretaria da Universidade Técnica para entregar o objeto/documento e concluir o processo."*
-   - O item surge na tabela com o código único (ex.: `LOC-0003`) e badge de status **"Pendente de Entrega na Secretaria"**.
+Ficheiro gerado automaticamente na raiz: `localize.db`
 
-2. **Registo de Item Perdido (`tipo: perdido`)**:
-   - O utilizador submete a descrição do pertence perdido.
-   - Mensagem em destaque: *"Sua notificação foi registada com sucesso. O seu objeto/documento ainda não deu entrada na Secretaria. Por favor, aguarde novas atualizações."*
-   - O item surge com o badge **"Aguardando Localização / Em Espera"**.
+### Tabelas:
+1. **`usuarios`**:
+   - `id INTEGER PRIMARY KEY AUTOINCREMENT`
+   - `nome TEXT NOT NULL`
+   - `email TEXT UNIQUE NOT NULL`
+   - `senha_hash TEXT NOT NULL`
+   - `perfil TEXT NOT NULL CHECK (perfil IN ('estudante', 'comunidade', 'secretaria'))`
+   - `criado_em TEXT DEFAULT CURRENT_TIMESTAMP`
 
-3. **Painel de Notificações Ativas**:
-   - Um cartão de alertas no topo do painel exibe mensagens recebidas da Secretaria.
-   - Quando houver match, surge o aviso formal:
-     > 📢 **Aviso de Levantamento:** O seu objeto/documento deu entrada na Secretaria da Universidade Técnica. Pode dirigir-se ao local para proceder ao levantamento e à verificação de identidade.
-   - Na tabela de registos, a linha do item exibe a badge verde **"Disponível para Levantamento"** com instrução para comparecer à Secretaria munido de documento de identificação.
+2. **`itens`**:
+   - `id INTEGER PRIMARY KEY AUTOINCREMENT`
+   - `codigo TEXT UNIQUE NOT NULL`
+   - `tipo TEXT NOT NULL CHECK (tipo IN ('perdido', 'achado'))`
+   - `categoria TEXT NOT NULL`
+   - `marca TEXT`
+   - `cor TEXT`
+   - `local_campus TEXT NOT NULL`
+   - `data_ocorrencia TEXT NOT NULL`
+   - `estado TEXT NOT NULL CHECK (estado IN ('pendente_entrega', 'em_custodia', 'aguardando_localizacao', 'disponivel_levantamento', 'devolvido'))`
+   - `localizacao TEXT`
+   - `par_id INTEGER REFERENCES itens(id)`
+   - `usuario_id INTEGER REFERENCES usuarios(id)`
+   - `criado_em TEXT DEFAULT CURRENT_TIMESTAMP`
 
-### 2.2 Visão da Secretaria (`/secretaria`)
-1. **Fila de Entrada (Pendente de Entrega)**:
-   - Lista os itens achados que aguardam entrega física por quem os encontrou.
-   - Permite à Secretaria dar entrada ("Receber") e definir a localização do depósito físico (ex.: *Armário B - Gaveta 3*).
-2. **Correspondências e Cruzamento de Dados (Match)**:
-   - Apresenta as correspondências calculadas pelo algoritmo com score percentual de similaridade (categoria, marca, cor, local).
-   - Ao clicar em **"Confirmar Correspondência"**:
-     - O sistema cruza os IDs do achado e do pedido de perda.
-     - Dispara automaticamente a notificação para a conta do estudante dono do item perdido.
-     - Atualiza o status de ambos para **"Disponível para Levantamento"**.
-3. **Aguardando Retirada & Registo de Devolução**:
-   - Lista todos os itens disponíveis para entrega.
-   - Exibe o código do item, localização no depósito, código do perdido e nome do dono.
-   - A Secretaria recolhe o número do BI ou matrícula do estudante e clica em **"Registar devolução"**.
-   - O status é comutado para **"Devolvido"** e arquivado no histórico de devoluções.
+3. **`notificacoes`**:
+   - `id INTEGER PRIMARY KEY AUTOINCREMENT`
+   - `usuario_id INTEGER REFERENCES usuarios(id)`
+   - `item_codigo TEXT NOT NULL`
+   - `mensagem TEXT NOT NULL`
+   - `lida INTEGER DEFAULT 0`
+   - `criada_em TEXT DEFAULT CURRENT_TIMESTAMP`
+
+4. **`devolucoes`**:
+   - `id INTEGER PRIMARY KEY AUTOINCREMENT`
+   - `achado_id INTEGER REFERENCES itens(id)`
+   - `perdido_id INTEGER REFERENCES itens(id)`
+   - `documento TEXT NOT NULL`
+   - `secretaria_id INTEGER REFERENCES usuarios(id)`
+   - `criado_em TEXT DEFAULT CURRENT_TIMESTAMP`
 
 ---
 
-## 3. Arquitetura Técnica e Mapeamento de Estados
+## 4. Preservação Rigorosa dos 3 Fluxos de Negócio
 
-### Novo Mapeamento de Estados:
-```typescript
-const ESTADOS: Record<string, string> = {
-  pendente_entrega: "Pendente de Entrega na Secretaria",
-  em_custodia: "Em custódia na Secretaria",
-  aguardando_localizacao: "Aguardando Localização / Em Espera",
-  disponivel_levantamento: "Disponível para Levantamento",
-  devolvido: "Devolvido"
-};
-```
+1. **Fluxo 1 (Item Encontrado)**:
+   - Utilizador regista o achado.
+   - Status inicial gravado no SQLite: `"Pendente de Entrega na Secretaria"`.
+   - Feedback automático: *"Obrigado pelo registo! Por favor, dirija-se à Secretaria da Universidade Técnica para entregar o objeto/documento e concluir o processo."*
+2. **Fluxo 2 (Item Perdido)**:
+   - Utilizador regista a notificação de perda.
+   - Status inicial gravado no SQLite: `"Aguardando Localização / Em Espera"`.
+   - Feedback automático: *"Sua notificação foi registada com sucesso. O seu objeto/documento ainda não deu entrada na Secretaria. Por favor, aguarde novas atualizações."*
+3. **Fluxo 3 (Match & Levantamento)**:
+   - Secretaria regista a entrada física (`em_custodia`).
+   - Algoritmo calcula a afinidade de atributos diretamente via SQL/queries de pontuação.
+   - Secretaria confirma o match: status comuta para `"Disponível para Levantamento"` e gera registo na tabela `notificacoes` com o texto exato:
+     *"O seu objeto/documento deu entrada na Secretaria da Universidade Técnica. Pode dirigir-se ao local para proceder ao levantamento e à verificação de identidade."*
+   - O estudante vê o alerta em tempo real no painel React.
+   - Na devolução física com BI/Matrícula, o status comuta para `"Devolvido"`.
 
-### Entidade de Notificações:
-```typescript
-interface Notificacao {
-  id: number;
-  usuario_id: number;
-  item_codigo: string;
-  mensagem: string;
-  lida: boolean;
-  criada_em: string;
-}
-```
+---
 
-### Arquivos Modificados:
-1. `server.ts`:
-   - Atualização do dicionário `ESTADOS` e mapeamentos de estado inicial por tipo de registo (`achado` -> `pendente_entrega`, `perdido` -> `aguardando_localizacao`).
-   - Adaptação das mensagens flash de resposta com os textos literais exigidos.
-   - Geração de notificação no array de `notificacoes` quando a Secretaria efetua o `POST /secretaria/match`.
-   - Atualização de status no match para `disponivel_levantamento` e na devolução para `devolvido`.
-   - Passagem das notificações ativas do utilizador autenticado para os templates EJS.
-2. `views/painel.ejs`:
-   - Seção de alertas de notificações recebidas para itens encontrados.
-   - Atualização visual das badges de status e orientações contextuais.
-3. `views/secretaria.ejs`:
-   - Atualização dos filtros de listagem para refletir a nova nomenclatura de status.
-   - Preservação da experiência com os novos status no fluxo de devolução.
-4. `static/css/style.css`:
-   - Estilos dedicados para as novas classes de badge (`badge--pendente_entrega`, `badge--aguardando_localizacao`, `badge--disponivel_levantamento`, `badge--devolvido`).
+## 5. Passos de Implementação
+
+1. **Dependências (`package.json`)**:
+   - Adicionar `react`, `react-dom`, `@types/react`, `@types/react-dom`.
+   - Adicionar biblioteca SQLite pura (`sql.js`) e motor de build/servidor leve.
+2. **Módulo de Base de Dados SQLite (`src/db.ts`)**:
+   - Inicialização automática da base de dados `localize.db` com criação das tabelas e seeding de utilizadores de teste (`secretaria@campus.local` e `estudante@campus.local`).
+3. **API REST no Express (`server.ts`)**:
+   - Rotas de login, registo, logout e status de sessão.
+   - Endpoints `/api/itens`, `/api/notificacoes`, `/api/secretaria/receber`, `/api/secretaria/match`, `/api/secretaria/devolver`.
+4. **Aplicação Frontend React**:
+   - Interface com design moderno e limpo do campus universitário.
+   - Componentes React:
+     - `Header`: Barra superior com identificação do utilizador e botão de troca de conta/sessão.
+     - `LoginView`: Acesso rápido com botões de 1 clique para Estudante e Secretaria.
+     - `EstudanteDashboard`: Notificações ativas em destaque, formulário de registo dinâmico e tabela com status coloridos.
+     - `SecretariaDashboard`: Abas para Fila de Entrada, Cruzamentos de Afinidade (%) e Levantamentos com documento.
+5. **Verificação de Build**:
+   - Garantir compilação com `compile_applet` e inicialização limpa com `restart_dev_server`.
